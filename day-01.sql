@@ -22,7 +22,7 @@
 -- 	film
 
 -- how many distinct last names of the customers
--- SELECT DISTINCT
--- 	COUNT(last_name)
+-- SELECT
+-- 	COUNT(DISTINCT last_name)
 -- FROM
 -- 	customer
