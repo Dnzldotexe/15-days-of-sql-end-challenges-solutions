@@ -34,16 +34,20 @@ LIMIT 1
 
 -- Answer: 514
 
-SELECT
-CASE
-    WHEN replacement_cost BETWEEN 9.99 AND 19.99 THEN 'low'
-    WHEN replacement_cost BETWEEN 20.00 AND 24.99 THEN 'medium'
-    WHEN replacement_cost BETWEEN 25.00 AND 29.99 THEN 'high'
-END AS replacement_cost_category,
-COUNT(replacement_cost) as COUNT
-FROM film
-GROUP BY replacement_cost_category
-ORDER BY COUNT DESC
+SELECT count
+FROM (
+    SELECT
+    CASE
+        WHEN replacement_cost BETWEEN 9.99 AND 19.99 THEN 'low'
+        WHEN replacement_cost BETWEEN 20.00 AND 24.99 THEN 'medium'
+        WHEN replacement_cost BETWEEN 25.00 AND 29.99 THEN 'high'
+    END AS replacement_cost_category,
+    COUNT(replacement_cost) as count
+    FROM film
+    GROUP BY replacement_cost_category
+    ORDER BY COUNT DESC
+)
+LIMIT 1
 
 
 -- Question 3:
@@ -127,113 +131,177 @@ LIMIT 1
 
 -- Answer: 4
 
+SELECT COUNT(address.address_id)
+FROM address
+LEFT JOIN customer
+ON address.address_id = customer.address_id
+WHERE customer.customer_id IS NULL
 
 
+-- Question 7:
 
-Question 7:
+-- Level: Moderate
 
-Level: Moderate
+-- Topic: JOIN & GROUP BY
 
-Topic: JOIN & GROUP BY
+-- Task: Create the overview of the sales  to determine the from which city (we are interested in the city in which the customer lives, not where the store is) most sales occur.
 
-Task: Create the overview of the sales  to determine the from which city (we are interested in the city in which the customer lives, not where the store is) most sales occur.
+-- Question: What city is that and how much is the amount?
 
-Question: What city is that and how much is the amount?
+-- Answer: Cape Coral with a total amount of 221.55
 
-Answer: Cape Coral with a total amount of 221.55
-
-
-Question 8:
-
-Level: Moderate to difficult
-
-Topic: JOIN & GROUP BY
-
-Task: Create an overview of the revenue (sum of amount) grouped by a column in the format "country, city".
-
-Question: Which country, city has the least sales?
-
-Answer: United States, Tallahassee with a total amount of 50.85.
+SELECT city.city, SUM(payment.amount) as amount
+FROM payment
+LEFT JOIN customer
+ON payment.customer_id = customer.customer_id
+LEFT JOIN address
+ON customer.address_id = address.address_id
+LEFT JOIN city
+ON address.city_id = city.city_id
+GROUP BY city.city 
+ORDER BY amount DESC
+LIMIT 1
 
 
-Question 9:
+-- Question 8:
 
-Level: Difficult
+-- Level: Moderate to difficult
 
-Topic: Uncorrelated subquery
+-- Topic: JOIN & GROUP BY
 
-Task: Create a list with the average of the sales amount each staff_id has per customer.
+-- Task: Create an overview of the revenue (sum of amount) grouped by a column in the format "country, city".
 
-Question: Which staff_id makes on average more revenue per customer?
+-- Question: Which country, city has the least sales?
 
-Answer: staff_id 2 with an average revenue of 56.64 per customer.
+-- Answer: United States, Tallahassee with a total amount of 50.85.
 
-
-Question 10:
-
-Level: Difficult to very difficult
-
-Topic: EXTRACT + Uncorrelated subquery
-
-Task: Create a query that shows average daily revenue of all Sundays.
-
-Question: What is the daily average revenue of all Sundays?
-
-Answer: 1410.65
-
-
-Question 11:
-
-Level: Difficult to very difficult
-
-Topic: Correlated subquery
-
-Task: Create a list of movies - with their length and their replacement cost - that are longer than the average length in each replacement cost group.
-
-Question: Which two movies are the shortest on that list and how long are they?
-
-Answer: CELEBRITY HORN and SEATTLE EXPECTATIONS with 110 minutes.
+SELECT country.country, city.city, SUM(payment.amount) as revenue
+FROM payment
+LEFT JOIN customer
+ON payment.customer_id = customer.customer_id
+LEFT JOIN address
+ON customer.address_id = address.address_id
+LEFT JOIN city
+ON address.city_id = city.city_id
+LEFT JOIN country
+ON city.country_id = country.country_id
+GROUP BY country.country, city.city 
+ORDER BY revenue
+LIMIT 1
 
 
-Question 12:
+-- Question 9:
 
-Level: Very difficult
+-- Level: Difficult
 
-Topic: Uncorrelated subquery
+-- Topic: Uncorrelated subquery
 
-Task: Create a list that shows the "average customer lifetime value" grouped by the different districts.
+-- Task: Create a list with the average of the sales amount each staff_id has per customer.
 
-Example:
-If there are two customers in "District 1" where one customer has a total (lifetime) spent of $1000 and the second customer has a total spent of $2000 then the "average customer lifetime spent" in this district is $1500.
+-- Question: Which staff_id makes on average more revenue per customer?
 
-So, first, you need to calculate the total per customer and then the average of these totals per district.
+-- Answer: staff_id 2 with an average revenue of 56.64 per customer.
 
-Question: Which district has the highest average customer lifetime value?
-
-Answer: Saint-Denis with an average customer lifetime value of 216.54.
-
-
-Question 13:
-
-Level: Very difficult
-
-Topic: Correlated query
-
-Task: Create a list that shows all payments including the payment_id, amount, and the film category (name) plus the total amount that was made in this category. Order the results ascendingly by the category (name) and as second order criterion by the payment_id ascendingly.
-
-Question: What is the total revenue of the category 'Action' and what is the lowest payment_id in that category 'Action'?
-
-Answer: Total revenue in the category 'Action' is 4375.85 and the lowest payment_id in that category is 16055.
+SELECT staff_id, ROUND(AVG(revenue), 2) as average
+FROM (
+    SELECT customer_id, staff_id, SUM(amount) as revenue
+    FROM payment
+    GROUP BY customer_id, staff_id
+) AS customer_revenue
+GROUP BY staff_id
+ORDER BY average DESC
+LIMIT 1
 
 
-Bonus question 14:
+-- Question 10:
 
-Level: Extremely difficult
+-- Level: Difficult to very difficult
 
-Topic: Correlated and uncorrelated subqueries (nested)
+-- Topic: EXTRACT + Uncorrelated subquery
 
-Task: Create a list with the top overall revenue of a film title (sum of amount per title) for each category (name).
+-- Task: Create a query that shows average daily revenue of all Sundays.
 
-Question: Which is the top-performing film in the animation category?
+-- Question: What is the daily average revenue of all Sundays?
 
-Answer: DOGMA FAMILY with 178.70.
+-- Answer: 1410.65
+
+SELECT ROUND(AVG(revenue), 2)
+FROM (
+    SELECT EXTRACT(DOW FROM payment_date) as sunday, SUM(amount) as revenue, DATE(payment_date) as sundate
+    FROM payment
+    WHERE EXTRACT(DOW FROM payment_date) = 0
+    GROUP BY sundate, sunday
+) as daily_revenue
+
+
+-- Question 11:
+
+-- Level: Difficult to very difficult
+
+-- Topic: Correlated subquery
+
+-- Task: Create a list of movies - with their length and their replacement cost - that are longer than the average length in each replacement cost group.
+
+-- Question: Which two movies are the shortest on that list and how long are they?
+
+-- Answer: CELEBRITY HORN and SEATTLE EXPECTATIONS with 110 minutes.
+
+SELECT title, length, replacement_cost 
+FROM film AS film_
+WHERE length > (
+	SELECT AVG(length)
+	FROM film film__
+	WHERE film_.replacement_cost = film__.replacement_cost
+)
+ORDER BY length
+LIMIT 2
+
+
+-- Question 12:
+
+-- Level: Very difficult
+
+-- Topic: Uncorrelated subquery
+
+-- Task: Create a list that shows the "average customer lifetime value" grouped by the different districts.
+
+-- Example:
+-- If there are two customers in "District 1" where one customer has a total (lifetime) spent of $1000 and the second customer has a total spent of $2000 then the "average customer lifetime spent" in this district is $1500.
+
+-- So, first, you need to calculate the total per customer and then the average of these totals per district.
+
+-- Question: Which district has the highest average customer lifetime value?
+
+-- Answer: Saint-Denis with an average customer lifetime value of 216.54.
+
+TOO MUCH
+
+
+-- Question 13:
+
+-- Level: Very difficult
+
+-- Topic: Correlated query
+
+-- Task: Create a list that shows all payments including the payment_id, amount, and the film category (name) plus the total amount that was made in this category. Order the results ascendingly by the category (name) and as second order criterion by the payment_id ascendingly.
+
+-- Question: What is the total revenue of the category 'Action' and what is the lowest payment_id in that category 'Action'?
+
+-- Answer: Total revenue in the category 'Action' is 4375.85 and the lowest payment_id in that category is 16055.
+
+TOO MUCH
+
+
+-- Bonus question 14:
+
+-- Level: Extremely difficult
+
+-- Topic: Correlated and uncorrelated subqueries (nested)
+
+-- Task: Create a list with the top overall revenue of a film title (sum of amount per title) for each category (name).
+
+-- Question: Which is the top-performing film in the animation category?
+
+-- Answer: DOGMA FAMILY with 178.70.
+
+TOO MUCH
