@@ -42,7 +42,7 @@ FROM (
         WHEN replacement_cost BETWEEN 20.00 AND 24.99 THEN 'medium'
         WHEN replacement_cost BETWEEN 25.00 AND 29.99 THEN 'high'
     END AS replacement_cost_category,
-    COUNT(replacement_cost) as count
+    COUNT(replacement_cost) AS count
     FROM film
     GROUP BY replacement_cost_category
     ORDER BY COUNT DESC
@@ -150,7 +150,7 @@ WHERE customer.customer_id IS NULL
 
 -- Answer: Cape Coral with a total amount of 221.55
 
-SELECT city.city, SUM(payment.amount) as amount
+SELECT city.city, SUM(payment.amount) AS amount
 FROM payment
 LEFT JOIN customer
 ON payment.customer_id = customer.customer_id
@@ -175,7 +175,7 @@ LIMIT 1
 
 -- Answer: United States, Tallahassee with a total amount of 50.85.
 
-SELECT country.country, city.city, SUM(payment.amount) as revenue
+SELECT country.country, city.city, SUM(payment.amount) AS revenue
 FROM payment
 LEFT JOIN customer
 ON payment.customer_id = customer.customer_id
@@ -202,9 +202,9 @@ LIMIT 1
 
 -- Answer: staff_id 2 with an average revenue of 56.64 per customer.
 
-SELECT staff_id, ROUND(AVG(revenue), 2) as average
+SELECT staff_id, ROUND(AVG(revenue), 2) AS average
 FROM (
-    SELECT customer_id, staff_id, SUM(amount) as revenue
+    SELECT customer_id, staff_id, SUM(amount) AS revenue
     FROM payment
     GROUP BY customer_id, staff_id
 ) AS customer_revenue
@@ -227,11 +227,11 @@ LIMIT 1
 
 SELECT ROUND(AVG(revenue), 2)
 FROM (
-    SELECT EXTRACT(DOW FROM payment_date) as sunday, SUM(amount) as revenue, DATE(payment_date) as sundate
+    SELECT EXTRACT(DOW FROM payment_date) AS sunday, SUM(amount) AS revenue, DATE(payment_date) AS sundate
     FROM payment
     WHERE EXTRACT(DOW FROM payment_date) = 0
     GROUP BY sundate, sunday
-) as daily_revenue
+) AS daily_revenue
 
 
 -- Question 11:
@@ -274,7 +274,19 @@ LIMIT 2
 
 -- Answer: Saint-Denis with an average customer lifetime value of 216.54.
 
-TOO MUCH
+SELECT address.district, ROUND(AVG(total), 2) AS lifetime_total
+FROM (
+    SELECT customer.customer_id, customer.address_id, SUM(payment.amount) AS total
+    FROM payment
+    LEFT JOIN customer
+    ON payment.customer_id = customer.customer_id
+    GROUP BY customer.customer_id
+) AS lifetime
+LEFT JOIN address
+ON lifetime.address_id = address.address_id
+GROUP BY address.district
+ORDER BY lifetime_total DESC
+LIMIT 1
 
 
 -- Question 13:
@@ -289,7 +301,22 @@ TOO MUCH
 
 -- Answer: Total revenue in the category 'Action' is 4375.85 and the lowest payment_id in that category is 16055.
 
-TOO MUCH
+SELECT SUM(amount)
+FROM (
+    -- executing this subquery alone will show the lowest payment_id
+	SELECT payment.payment_id, payment.amount, category.name
+	FROM payment
+	LEFT JOIN rental
+	ON payment.rental_id = rental.rental_id
+	LEFT JOIN inventory
+	ON rental.inventory_id = inventory.inventory_id
+	LEFT JOIN film_category
+	ON inventory.film_id = film_category.film_id
+	LEFT JOIN category
+	ON film_category.category_id = category.category_id
+	WHERE category.name IN ('Action')
+	ORDER BY payment_id
+)
 
 
 -- Bonus question 14:
@@ -304,4 +331,19 @@ TOO MUCH
 
 -- Answer: DOGMA FAMILY with 178.70.
 
-TOO MUCH
+
+SELECT film.title, SUM(payment.amount) AS top_performing
+FROM payment
+LEFT JOIN rental
+ON payment.rental_id = rental.rental_id
+LEFT JOIN inventory
+ON rental.inventory_id = inventory.inventory_id
+LEFT JOIN film_category
+ON inventory.film_id = film_category.film_id
+LEFT JOIN film
+ON film_category.film_id = film.film_id
+LEFT JOIN category
+ON film_category.category_id = category.category_id
+WHERE category.name IN ('Animation')
+GROUP BY film.title
+ORDER BY top_performing DESC
