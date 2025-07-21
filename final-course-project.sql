@@ -129,47 +129,108 @@ ON employees.manager_id = manager_.emp_id
 
 
 -- TASK 6
-
+SELECT position_title, ROUND(AVG(salary), 2) AS average_salary
+FROM employees
+WHERE position_title IN ('Software Engineer')
+GROUP BY position_title
 
 
 -- TASK 7
-
+SELECT department, ROUND(AVG(salary), 2) AS average_salary
+FROM employees
+LEFT JOIN departments
+ON employees.department_id = departments.department_id
+WHERE department IN ('Sales')
+GROUP BY departments.department_id
 
 
 -- TASK 8
+CREATE MATERIALIZED VIEW mv_average_position_salaries AS
+    SELECT position_title, ROUND(AVG(salary), 2) AS average_position_salary
+    FROM employees
+    GROUP BY position_title
 
+SELECT emp_id, first_name, last_name, employees.position_title, salary, average_position_salary
+FROM employees
+LEFT JOIN mv_average_position_salaries
+ON employees.position_title = mv_average_position_salaries.position_title
+ORDER BY emp_id
 
 
 -- TASK 8.1
-
+SELECT COUNT(emp_id)
+FROM employees
+LEFT JOIN mv_average_position_salaries
+ON employees.position_title = mv_average_position_salaries.position_title
+WHERE
+end_date IS NULL AND -- do we exclude people who already left the company?
+salary < average_position_salary
 
 
 -- TASK 9
-
+SELECT emp_id, salary, start_date,
+SUM(salary) OVER(ORDER BY start_date) AS running_total_of_salary
+FROM employees
 
 
 -- TASK 10
-
+SELECT emp_id, salary, start_date,
+SUM(salary) OVER(ORDER BY start_date) AS running_total_of_salary
+FROM employees
+WHERE end_date IS NULL
 
 
 -- TASK 11
-
+SELECT first_name, position_title, salary
+FROM employees
+WHERE position_title IN ('SQL Analyst')
+ORDER BY salary DESC
+LIMIT 1
 
 
 -- TASK 11.1
-
+SELECT first_name, employees.position_title, salary, average_position_salary
+FROM employees
+LEFT JOIN mv_average_position_salaries
+ON employees.position_title = mv_average_position_salaries.position_title
+ORDER BY salary DESC
 
 
 -- TASK 11.2
-
+SELECT first_name, employees.position_title, salary, average_position_salary
+FROM employees
+LEFT JOIN mv_average_position_salaries
+ON employees.position_title = mv_average_position_salaries.position_title
+ORDER BY salary DESC
 
 
 -- TASK 12
-
+SELECT division, department, position_title, SUM(salary), COUNT(emp_id), ROUND(AVG(salary))
+FROM employees
+LEFT JOIN departments
+ON employees.department_id = departments.department_id
+GROUP BY
+ROLLUP(
+    division,
+    department,
+    position_title
+)
+ORDER BY division, department, position_title
 
 
 -- TASK 13
-
+SELECT emp_id, position_title, department, salary, 
+RANK() OVER(PARTITION BY department ORDER BY salary DESC)
+FROM employees
+LEFT JOIN departments
+ON employees.department_id = departments.department_id
 
 
 -- TASK 14
+SELECT emp_id, position_title, department, salary, 
+FIRST_VALUE(emp_id) OVER(PARTITION BY department ORDER BY salary DESC) AS top_earner
+FROM employees
+LEFT JOIN departments
+ON employees.department_id = departments.department_id
+WHERE department IN ('Finance')
+LIMIT 1
